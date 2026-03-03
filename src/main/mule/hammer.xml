@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="d1ced3f3-520a-4d46-ba3a-35160e80a381" file="config.yaml" />
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a7b824b2-b8f1-45cf-a06b-af321e6a7888" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="silverHammerFlow" doc:id="be1df6bf-556b-45f5-9de2-70dbcee92520">
+		<scheduler doc:name="9 secs" doc:id="053583a3-1929-458f-be75-6d9a232e32d8" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="9000"/>
+			</scheduling-strategy>
+		</scheduler>
+		<set-variable value="${api.endpoint}/flights" doc:name="apiEndpoint" doc:id="a9fa9838-095d-4b4b-b528-f47dfd434e8a" variableName="apiEndpoint"/>
+		<logger level="INFO" doc:name="audit" doc:id="8bb544d4-21e4-4640-bb50-7b3c7f53a6fc" message="#[output json&#10;---&#10;{&#10;	reporter: &quot;Silver Audit Logger&quot;,&#10;	endpoint: vars.apiEndpoint,&#10;	client_id: Mule::p('silver.id'),&#10;	client_secret: Mule::p('silver.secret')&#10;}]"/>
+		<http:request method="GET" doc:name="Request" doc:id="7f03eb64-3e26-4464-9e03-647ad0497f3a" url="#[vars.apiEndpoint]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : Mule::p('silver.secret'),
+	"client_id" : Mule::p('silver.id')
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="967f8daa-b07e-4ab0-8a9d-89753e607c30" message='#[output application/json --- { reporter: "hammer logger", result: "Silver service success..."}]'/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="false" doc:name="On Error Continue" doc:id="705cfa07-36ad-4483-82b3-40c40ca7a65e" >
+				<logger level="INFO" doc:name="Logger" doc:id="0121cfe8-8655-4dd2-ac7f-3bef6080a9bc" message='#[output json &#10;var reset = (error.errorMessage.attributes.headers."x-ratelimit-reset" as Number) default 0&#10;--- &#10;{&#10;	reporter: "Silver Error Handler",&#10;	message: "Silver Hammer Failed. Too bad Maxwell!",&#10;	remaining_delay: "You must wait $(reset / 1000) seconds before next try"&#10;}]'/>
+				<!-- [STUDIO:"erorr_audit"]<logger level="INFO" doc:name="erorr_audit" doc:id="8ef03ffb-d22e-4fdf-acfc-7c3b9088a95e" message="#[output json&#10;&#45;&#45;-&#10;{&#10;	reporter: &quot;Silver Error Logger&quot;,&#10;	endpoint: vars.apiEndpoint,&#10;	client_id: Mule::p('silver.id'),&#10;	client_secret: Mule::p('silver.secret'),&#10;	errorMessage: error.description&#10;}&#93;" /> [STUDIO] -->
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="goldHammerFlow" doc:id="e098fb2d-7b91-48ef-b96d-666fb21762c9">
+		<scheduler doc:name="2 secs" doc:id="dcf30230-5aab-47b8-9658-e89c9742f1a8" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="2000"/>
+			</scheduling-strategy>
+		</scheduler>
+		<set-variable value="${api.endpoint}/flights" doc:name="apiEndpoint" doc:id="5b78ba25-ec7d-4f01-b838-0925d49a375a" variableName="apiEndpoint" />
+		<http:request method="GET" doc:name="Request" doc:id="ac7aa57a-6399-43b3-a5ad-6ba827cf1bd9" url="#[vars.apiEndpoint]" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : Mule::p('gold.secret'),
+	"client_id" : Mule::p('gold.id')
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="089fa1bd-cc95-4b7e-827b-b6e157c7f26f" message='#[output application/json --- { reporter: "hammer logger", result: "Gold service success..."}]' />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="false" doc:name="On Error Continue" doc:id="acdfa509-3179-49c1-a3c2-36da4f286cd2" >
+				<logger level="INFO" doc:name="Logger" doc:id="fc6412bb-0508-4c0b-af96-a25f6c40e65f" message='#[output json &#10;var reset = (error.errorMessage.attributes.headers."x-ratelimit-reset" as Number) default 0&#10;--- &#10;{&#10;	reporter: "Gold Error Handler",&#10;	message: "Gold Hammer Failed. So long Glimmer!",&#10;	remaining_delay: "You must wait $(reset / 1000) seconds before next try"&#10;}]'/>
+				<!-- [STUDIO:"erorr_audit"]<logger level="INFO" doc:name="erorr_audit" doc:id="b5694ab6-5a31-4e81-aea8-cf320a7ad5e8" message="#[output json&#10;&#45;&#45;-&#10;{&#10;	reporter: &quot;Gold Error Logger&quot;,&#10;	endpoint: vars.apiEndpoint,&#10;	client_id: Mule::p('gold.id'),&#10;	client_secret: Mule::p('gold.secret'),&#10;	errorMessage: error.description&#10;}&#93;" /> [STUDIO] -->
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

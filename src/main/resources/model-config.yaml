@@ -1,0 +1,12 @@
+http:
+  port: "8081"
+
+api:
+  endpoint: "<<Your Endpoint Here>>"
+
+bronze:
+  id: "<<Your Token Here>>"
+  secret: "<<Your Token Here>>"
+silver:
+  id: "<<Your Token Here>>"
+  secret: "<<Your Token Here>>"
